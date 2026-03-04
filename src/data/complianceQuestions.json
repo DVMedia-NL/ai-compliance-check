@@ -1,0 +1,118 @@
+[
+  {
+    "id": "q1-annex3-hoog-risico-classificatie",
+    "category": "Risicoclassificatie",
+    "questionText": "Wordt uw AI-systeem ingezet in een van de hoog-risico categorieën zoals gedefinieerd in Bijlage III van de EU AI-verordening (bijv. HR-selectie, kredietbeoordeling, biometrische identificatie, toegang tot onderwijs of kritieke infrastructuur)?",
+    "options": [
+      {
+        "label": "Ja",
+        "riskWeight": 10
+      },
+      {
+        "label": "Nee",
+        "riskWeight": 0
+      },
+      {
+        "label": "Weet niet",
+        "riskWeight": 7
+      }
+    ],
+    "legalContext": "Bijlage III van de EU AI-verordening definieert specifieke toepassingsgebieden waarbij AI-systemen automatisch als hoog-risico worden geclassificeerd. Organisaties die in deze categorieën opereren zijn onderworpen aan strenge verplichtingen op het gebied van transparantie, menselijk toezicht en technische documentatie."
+  },
+  {
+    "id": "q2-art12-logging-audit-trail",
+    "category": "Logging & Traceerbaarheid",
+    "questionText": "Is uw AI-systeem voorzien van automatische logging die alle operationele beslissingen, invoerdata en uitkomsten registreert op een wijze die achteraf volledig auditeerbaar is door bevoegde autoriteiten?",
+    "options": [
+      {
+        "label": "Ja, volledig geïmplementeerd",
+        "riskWeight": 0
+      },
+      {
+        "label": "Gedeeltelijk geïmplementeerd",
+        "riskWeight": 5
+      },
+      {
+        "label": "Nee",
+        "riskWeight": 10
+      },
+      {
+        "label": "Weet niet",
+        "riskWeight": 8
+      }
+    ],
+    "legalContext": "Artikel 12 van de EU AI-verordening verplicht hoog-risico AI-systemen tot automatische vastlegging van gebeurtenissen ('logging') gedurende de gehele levenscyclus. Deze logs moeten de traceerbaarheid van beslissingen waarborgen en beschikbaar zijn voor toezichthouders."
+  },
+  {
+    "id": "q3-human-oversight-mechanisme",
+    "category": "Menselijk Toezicht",
+    "questionText": "Beschikt uw organisatie over aantoonbare mechanismen waarmee menselijke toezichthouders de werking van het AI-systeem actief kunnen monitoren, onderbreken of corrigeren gedurende de operationele fase?",
+    "options": [
+      {
+        "label": "Ja, gedocumenteerd en operationeel",
+        "riskWeight": 0
+      },
+      {
+        "label": "In ontwikkeling",
+        "riskWeight": 6
+      },
+      {
+        "label": "Nee",
+        "riskWeight": 10
+      },
+      {
+        "label": "Weet niet",
+        "riskWeight": 7
+      }
+    ],
+    "legalContext": "Artikel 14 van de EU AI-verordening vereist dat hoog-risico AI-systemen zijn ontworpen met effectieve 'human oversight'-maatregelen. Mensen die belast zijn met toezicht moeten het systeem kunnen begrijpen, volgen en indien nodig kunnen uitschakelen of verwerpen."
+  },
+  {
+    "id": "q4-data-governance-trainingdata",
+    "category": "Data Governance",
+    "questionText": "Zijn de trainings-, validatie- en testdata van uw AI-systeem onderworpen aan gedocumenteerde governanceprocedures die data-kwaliteit, relevantie, representativiteit en het ontbreken van schadelijke bias aantoonbaar borgen?",
+    "options": [
+      {
+        "label": "Ja, volledig gedocumenteerd",
+        "riskWeight": 0
+      },
+      {
+        "label": "Gedeeltelijk gedocumenteerd",
+        "riskWeight": 5
+      },
+      {
+        "label": "Nee",
+        "riskWeight": 9
+      },
+      {
+        "label": "Weet niet",
+        "riskWeight": 8
+      }
+    ],
+    "legalContext": "Artikel 10 van de EU AI-verordening stelt verplichte eisen aan data- en datakwaliteitsbeheer voor hoog-risico AI-systemen. Trainingsdata moet voldoen aan kwaliteitscriteria en aantoonbaar vrij zijn van fouten en ongewenste biases die fundamentele rechten kunnen schaden."
+  },
+  {
+    "id": "q5-transparantie-gebruikersinformatie",
+    "category": "Transparantie",
+    "questionText": "Worden de gebruikers of betrokkenen van uw AI-systeem proactief en begrijpelijk geïnformeerd over het feit dat zij interacteren met of onderwerp zijn van een geautomatiseerd besluitvormingssysteem, inclusief de reikwijdte en beperkingen ervan?",
+    "options": [
+      {
+        "label": "Ja, standaard en aantoonbaar",
+        "riskWeight": 0
+      },
+      {
+        "label": "Situationeel, niet structureel",
+        "riskWeight": 5
+      },
+      {
+        "label": "Nee",
+        "riskWeight": 10
+      },
+      {
+        "label": "Weet niet",
+        "riskWeight": 7
+      }
+    ],
+    "legalContext": "Artikel 13 van de EU AI-verordening verplicht aanbieders van hoog-risico AI-systemen tot het waarborgen van een toereikend transparantieniveau. Gebruikers moeten in staat zijn de outputs van het systeem te interpreteren en er verantwoord gebruik van te maken, wat vereist dat de werking navolgbaar en uitlegbaar is."
+  }
+]
