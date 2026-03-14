@@ -282,7 +282,7 @@ export default function ComplianceWizard() {
 
                     {/* F. CTA BUTTONS */}
                     <div className="space-y-4 pt-4">
-                        <a href="#" className="block w-full min-h-[56px] bg-gold text-[#000000] font-bold text-[18px] text-center flex items-center justify-center hover:bg-white transition-colors">
+                        <a href="https://calendly.com/danny-dvsocial/30min" target="_blank" rel="noopener noreferrer" className="block w-full min-h-[56px] bg-gold text-[#000000] font-bold text-[18px] text-center flex items-center justify-center hover:bg-white transition-colors">
                             Plan uw gratis gesprek
                         </a>
                         <a href="tel:+31600000000" className="block w-full min-h-[48px] bg-transparent border border-gold text-gold font-medium text-center flex items-center justify-center hover:bg-gold/10 transition-colors">

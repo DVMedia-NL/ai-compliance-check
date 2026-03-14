@@ -5,7 +5,6 @@ import { Resend } from 'resend';
 import fs from 'fs';
 import path from 'path';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Cache the PDF buffer at module level to ensure <800ms response
 let pdfBuffer: Buffer | null = null;
@@ -38,6 +37,15 @@ interface LeadData {
 }
 
 export async function POST(request: Request) {
+    const resendKey = process.env.RESEND_API_KEY;
+    if (!resendKey) {
+        return NextResponse.json(
+            { error: "Email service not configured" },
+            { status: 503 }
+        );
+    }
+    const resend = new Resend(resendKey);
+
     try {
         const body: LeadData = await request.json();
         const { voornaam, achternaam, bedrijfsnaam, email, risicoscore, risiconiveau } = body;
