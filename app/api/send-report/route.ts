@@ -333,6 +333,18 @@ export async function POST(request: Request) {
 
             const dynamicPdfBuffer = await generateAuditPDF(body);
 
+            const risicoNiveauNL: Record<string, string> = {
+                'critical': 'KRITISCH RISICO',
+                'high': 'HOOG RISICO', 
+                'medium': 'GEMIDDELD RISICO',
+                'low': 'LAAG RISICO',
+                'CRITICAL': 'KRITISCH RISICO',
+                'HIGH': 'HOOG RISICO',
+                'MEDIUM': 'GEMIDDELD RISICO',
+                'LOW': 'LAAG RISICO',
+            };
+            const risicoDisplay = risicoNiveauNL[risiconiveau] ?? risiconiveau.toUpperCase();
+
             // Email to lead
             const leadEmailPromise = resend.emails.send({
                 from: 'DV Social <noreply@dvsocial.nl>', // Adjust from email if needed
@@ -344,7 +356,7 @@ export async function POST(request: Request) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin:0; padding:0; background:#0A0A0A; font-family:Georgia,serif;">
+<body style="margin:0; padding:0; background:#0A0A0A; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0A0A;">
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%;">
@@ -358,7 +370,7 @@ export async function POST(request: Request) {
       <table width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td>
-            <div style="font-family:Georgia,'Times New Roman',serif; font-size:13px; color:#C9A84C; letter-spacing:4px; text-transform:uppercase; margin-bottom:4px;">DV SOCIAL</div>
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:13px; color:#C9A84C; letter-spacing:4px; text-transform:uppercase; margin-bottom:4px;">DV SOCIAL</div>
             <div style="font-family:'Courier New',monospace; font-size:9px; color:#444; letter-spacing:3px; text-transform:uppercase;">AI COMPLIANCE ADVISORY · NEDERLAND</div>
           </td>
           <td align="right">
@@ -383,12 +395,12 @@ export async function POST(request: Request) {
         <tr>
           <td style="padding:16px 20px;">
             <div style="font-family:'Courier New',monospace; font-size:9px; color:#888; letter-spacing:3px; margin-bottom:4px;">RISICOCLASSIFICATIE</div>
-            <div style="font-family:Georgia,serif; font-size:16px; color:#E74C3C; font-weight:bold; letter-spacing:1px;">${risiconiveau.toUpperCase()}</div>
-            <div style="font-family:Georgia,serif; font-size:11px; color:#888; margin-top:4px;">Uw organisatie vereist directe compliancemaatregelen vóór 2 augustus 2026.</div>
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:16px; color:#E74C3C; font-weight:bold; letter-spacing:1px;">${risicoDisplay}</div>
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:11px; color:#888; margin-top:4px;">Uw organisatie vereist directe compliancemaatregelen vóór 2 augustus 2026.</div>
           </td>
           <td align="right" style="padding:16px 20px; white-space:nowrap;">
             <div style="font-family:'Courier New',monospace; font-size:9px; color:#555; letter-spacing:1px;">DEADLINE</div>
-            <div style="font-family:Georgia,serif; font-size:13px; color:#C9A84C; font-weight:bold;">2 AUG 2026</div>
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:13px; color:#C9A84C; font-weight:bold;">2 AUG 2026</div>
           </td>
         </tr>
       </table>
@@ -397,11 +409,11 @@ export async function POST(request: Request) {
 
   <tr>
     <td style="background:#0A0A0A; padding:32px 48px 0 48px;">
-      <div style="font-family:Georgia,serif; font-size:13px; color:#C9A84C; letter-spacing:1px; margin-bottom:6px;">Beste ${voornaam},</div>
-      <div style="font-family:Georgia,serif; font-size:14px; color:#E0E0E0; line-height:1.8; margin-bottom:20px;">
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:13px; color:#C9A84C; letter-spacing:1px; margin-bottom:6px;">Beste ${voornaam},</div>
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:15px; color:#E0E0E0; line-height:1.8; margin-bottom:20px;">
         Bedankt voor het invullen van de <span style="color:#C9A84C;">AI Compliance Check</span>. Op basis van uw antwoorden heeft onze analyse een <strong style="color:#E74C3C;">hoog risicoprofiel</strong> vastgesteld voor uw organisatie.
       </div>
-      <div style="font-family:Georgia,serif; font-size:14px; color:#E0E0E0; line-height:1.8; margin-bottom:24px;">
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:15px; color:#E0E0E0; line-height:1.8; margin-bottom:24px;">
         In de bijlage vindt u uw <strong style="color:#C9A84C;">persoonlijke AI Compliance Auditrapport</strong> — een voorlopige gap-analyse op basis van Artikel 14 en Artikel 25 van de EU AI Act.
       </div>
     </td>
@@ -417,19 +429,19 @@ export async function POST(request: Request) {
           <table width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
               <td width="20" valign="top" style="padding-bottom:10px;"><div style="width:6px; height:6px; background:#C9A84C; margin-top:5px;">&nbsp;</div></td>
-              <td style="padding-bottom:10px; padding-left:10px;"><div style="font-family:Georgia,serif; font-size:12px; color:#E0E0E0; font-weight:bold;">Voorlopige Gap-Analyse</div><div style="font-family:Georgia,serif; font-size:11px; color:#888; margin-top:2px;">8 compliance-verplichtingen beoordeeld op status en risico</div></td>
+              <td style="padding-bottom:10px; padding-left:10px;"><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:12px; color:#E0E0E0; font-weight:bold;">Voorlopige Gap-Analyse</div><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:11px; color:#888; margin-top:2px;">8 compliance-verplichtingen beoordeeld op status en risico</div></td>
             </tr>
             <tr>
               <td width="20" valign="top" style="padding-bottom:10px;"><div style="width:6px; height:6px; background:#C9A84C; margin-top:5px;">&nbsp;</div></td>
-              <td style="padding-bottom:10px; padding-left:10px;"><div style="font-family:Georgia,serif; font-size:12px; color:#E0E0E0; font-weight:bold;">Persoonlijke Aansprakelijkheid (Art. 25)</div><div style="font-family:Georgia,serif; font-size:11px; color:#888; margin-top:2px;">Wat uw rol als HR Director juridisch betekent</div></td>
+              <td style="padding-bottom:10px; padding-left:10px;"><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:12px; color:#E0E0E0; font-weight:bold;">Persoonlijke Aansprakelijkheid (Art. 25)</div><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:11px; color:#888; margin-top:2px;">Wat uw rol als HR Director juridisch betekent</div></td>
             </tr>
             <tr>
               <td width="20" valign="top" style="padding-bottom:10px;"><div style="width:6px; height:6px; background:#C9A84C; margin-top:5px;">&nbsp;</div></td>
-              <td style="padding-bottom:10px; padding-left:10px;"><div style="font-family:Georgia,serif; font-size:12px; color:#E0E0E0; font-weight:bold;">Maximale Sancties</div><div style="font-family:Georgia,serif; font-size:11px; color:#888; margin-top:2px;">Tot €35 miljoen of 7% jaaromzet — wie is aansprakelijk</div></td>
+              <td style="padding-bottom:10px; padding-left:10px;"><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:12px; color:#E0E0E0; font-weight:bold;">Maximale Sancties</div><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:11px; color:#888; margin-top:2px;">Tot €35 miljoen of 7% jaaromzet — wie is aansprakelijk</div></td>
             </tr>
             <tr>
               <td width="20" valign="top"><div style="width:6px; height:6px; background:#C9A84C; margin-top:5px;">&nbsp;</div></td>
-              <td style="padding-left:10px;"><div style="font-family:Georgia,serif; font-size:12px; color:#E0E0E0; font-weight:bold;">Concrete Vervolgstap</div><div style="font-family:Georgia,serif; font-size:11px; color:#888; margin-top:2px;">Wat u nu kunt doen vóór de deadline van 2 augustus 2026</div></td>
+              <td style="padding-left:10px;"><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:12px; color:#E0E0E0; font-weight:bold;">Concrete Vervolgstap</div><div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:11px; color:#888; margin-top:2px;">Wat u nu kunt doen vóór de deadline van 2 augustus 2026</div></td>
             </tr>
           </table>
         </td></tr>
@@ -439,7 +451,7 @@ export async function POST(request: Request) {
 
   <tr>
     <td style="background:#0A0A0A; padding:28px 48px 0 48px;">
-      <div style="font-family:Georgia,serif; font-size:13px; color:#888; line-height:1.8; border-left:2px solid #C9A84C; padding-left:16px; font-style:italic;">
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:13px; color:#888; line-height:1.8; border-left:2px solid #C9A84C; padding-left:16px; font-style:italic;">
         "De handhavingsdeadline van 2 augustus 2026 is onherroepelijk. Organisaties zonder aantoonbare conformiteit riskeren niet alleen boetes — maar ook reputatieschade en persoonlijke aansprakelijkheid voor de HR-verantwoordelijke."
       </div>
     </td>
@@ -462,7 +474,7 @@ export async function POST(request: Request) {
           </td>
         </tr>
       </table>
-      <div style="font-family:Georgia,serif; font-size:11px; color:#555; margin-top:12px; text-align:center;">45 minuten · Kosteloos · Zonder verdere verplichting</div>
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:11px; color:#555; margin-top:12px; text-align:center;">45 minuten · Kosteloos · Zonder verdere verplichting</div>
     </td>
   </tr>
 
@@ -470,7 +482,7 @@ export async function POST(request: Request) {
     <td style="background:#0A0A0A; padding:24px 48px 0 48px;">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0D1A0D; border:1px solid #1a3a1a;">
         <tr><td style="padding:14px 20px;">
-          <div style="font-family:Georgia,serif; font-size:12px; color:#E0E0E0; line-height:1.6;">
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:12px; color:#E0E0E0; line-height:1.6;">
             <span style="color:#C9A84C; font-weight:bold;">Beschikbaarheid Q2 2026:</span> Er zijn nog <strong style="color:#C9A84C;">2 intakeposities beschikbaar</strong> voor Q2 2026.
           </div>
         </td></tr>
@@ -480,8 +492,8 @@ export async function POST(request: Request) {
 
   <tr>
     <td style="background:#0A0A0A; padding:32px 48px 0 48px;">
-      <div style="font-family:Georgia,serif; font-size:13px; color:#E0E0E0; line-height:1.8; margin-bottom:8px;">Met vriendelijke groet,</div>
-      <div style="font-family:Georgia,serif; font-size:14px; color:#C9A84C; font-weight:bold;">Danny Verbeek</div>
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:13px; color:#E0E0E0; line-height:1.8; margin-bottom:8px;">Met vriendelijke groet,</div>
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:15px; color:#C9A84C; font-weight:bold;">Danny Verbeek</div>
       <div style="font-family:'Courier New',monospace; font-size:9px; color:#555; letter-spacing:2px; margin-top:2px;">OPRICHTER · DV SOCIAL · AI COMPLIANCE ADVISORY</div>
       <div style="font-family:'Courier New',monospace; font-size:9px; color:#444; margin-top:6px;">Mobiel: 06 38 20 24 24 &nbsp;·&nbsp; ai-compliance-check.nl</div>
     </td>
@@ -524,7 +536,7 @@ export async function POST(request: Request) {
                 from: 'DV Social Notifications <noreply@dvsocial.nl>', // Adjust from email if needed
                 to: 'danny@dvsocial.nl',
                 subject: `🔔 Nieuwe Lead: ${bedrijfsnaam}`,
-                text: `Nieuwe Lead binnengekomen:\n\nVoornaam: ${voornaam}\nAchternaam: ${achternaam}\nBedrijfsnaam: ${bedrijfsnaam}\nEmail: ${email}\nRisicoscore: ${risicoscore}\nRisiconiveau: ${risiconiveau}`
+                text: `Nieuwe Lead binnengekomen:\n\nVoornaam: ${voornaam}\nAchternaam: ${achternaam}\nBedrijfsnaam: ${bedrijfsnaam}\nEmail: ${email}\nRisicoscore: ${risicoscore}\nRisiconiveau: ${risicoDisplay}`
             });
 
             await Promise.race([

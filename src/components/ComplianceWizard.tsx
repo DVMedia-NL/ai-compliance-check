@@ -378,9 +378,14 @@ export default function ComplianceWizard() {
                         <div className="text-center space-y-4 py-8">
                             <h3 className="font-serif text-2xl text-gold">Dank u wel!</h3>
                             {successMessage ? (
-                                <p className="text-muted leading-relaxed max-w-sm mx-auto whitespace-pre-line">
-                                    {successMessage}
-                                </p>
+                                <>
+                                    <p className="text-muted leading-relaxed max-w-sm mx-auto whitespace-pre-line mb-4">
+                                        {successMessage}
+                                    </p>
+                                    <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                                        Controleer ook uw spam-map als u het rapport niet ziet.
+                                    </p>
+                                </>
                             ) : (
                                 <>
                                     <p className="text-muted leading-relaxed max-w-sm mx-auto">
