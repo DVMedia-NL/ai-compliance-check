@@ -157,6 +157,45 @@ export default function ComplianceWizard() {
             
             if (!res.ok) throw new Error(data.error || "Er ging iets mis");
             
+            // --- TRIGGER EMAIL SEND-REPORT ---
+            const localResult = calculateAuditScore({
+                q4: qaAnswers.q4 || "",
+                q5: qaAnswers.q5 || "",
+                q6: qaAnswers.q6 || "",
+                q7: qaAnswers.q7 || "",
+                q8: qaAnswers.q8 || "",
+                q9: qaAnswers.q9 || "",
+            }, answers.sector as string || "");
+
+            const nameParts = leadForm.name.trim().split(" ");
+            const voornaam = nameParts[0] || "";
+            const achternaam = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+            const mappedRiskLevel = localResult.riskLevel === "HIGH" ? "critical" : localResult.riskLevel === "MEDIUM" ? "medium" : "low";
+
+            const emailController = new AbortController();
+            const emailTimeoutId = setTimeout(() => emailController.abort(), 10000);
+            
+            try {
+                await fetch("/api/send-report", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        voornaam,
+                        achternaam,
+                        bedrijfsnaam: leadForm.company,
+                        email: leadForm.email,
+                        risicoscore: localResult.score,
+                        risiconiveau: mappedRiskLevel
+                    }),
+                    signal: emailController.signal
+                });
+            } catch (e) {
+                console.error("Mail trigger failed, but continuing silently", e);
+            } finally {
+                clearTimeout(emailTimeoutId);
+            }
+            // --- EIND TRIGGER ---
+
             if (!isSlow) {
                 if (data.message) {
                     setSuccessMessage(data.message);
