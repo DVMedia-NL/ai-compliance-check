@@ -158,7 +158,10 @@ export default function ComplianceWizard() {
             if (!res.ok) throw new Error(data.error || "Er ging iets mis");
             
             if (!isSlow) {
-                setResultUrl(data.reportUrl);
+                if (data.message) {
+                    setSuccessMessage(data.message);
+                }
+                setResultUrl(data.reportUrl || null);
                 setSubmitted(true);
             }
         } catch (err: any) {

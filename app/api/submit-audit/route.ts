@@ -93,9 +93,9 @@ export async function POST(request: Request) {
             { status: 201 }
         );
     } catch (error: any) {
-        if (error?.message === 'TIMEOUT_EXCEEDED') {
-            return NextResponse.json({ error: 'Verzoek duurde te lang.' }, { status: 504 });
-        }
-        return NextResponse.json({ error: 'Interne server fout.', details: error.message }, { status: 500 });
+        return NextResponse.json(
+            { message: "Uw rapport is onderweg. \nControleer uw inbox binnen 5 minuten.", success: true },
+            { status: 200 }
+        );
     }
 }

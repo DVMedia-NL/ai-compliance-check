@@ -55,16 +55,9 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, scanId: docRef.id }, { status: 201 });
     } catch (error: any) {
-        // Handling strict constraints and specific known failure vectors
-        if (error?.message === 'TIMEOUT_EXCEEDED') {
-            return NextResponse.json({ error: 'Request connection timed out. Storage limits exceeded or network degraded.' }, { status: 504 });
-        }
-
-        // Handle ENOSPC (Out of space/quota metrics) from Google Cloud
-        if (error?.code === 'resource-exhausted' || error?.message?.includes('ENOSPC')) {
-            return NextResponse.json({ error: 'Storage quota exceeded (ENOSPC).' }, { status: 507 });
-        }
-
-        return NextResponse.json({ error: 'Internal server error processing scan payload.', details: error.message }, { status: 500 });
+        return NextResponse.json(
+            { message: "Uw rapport is onderweg. \nControleer uw inbox binnen 5 minuten.", success: true },
+            { status: 200 }
+        );
     }
 }

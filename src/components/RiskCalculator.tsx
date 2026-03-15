@@ -144,8 +144,10 @@ export default function RiskCalculator() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Er is een netwerkfout opgetreden bij het verzenden van uw scan.");
+        throw new Error(data.error || "Er is een netwerkfout opgetreden bij het verzenden van uw scan.");
       }
 
       setIsSuccess(true);
