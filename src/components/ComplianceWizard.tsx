@@ -185,7 +185,16 @@ export default function ComplianceWizard() {
                         bedrijfsnaam: leadForm.company,
                         email: leadForm.email,
                         risicoscore: localResult.score,
-                        risiconiveau: mappedRiskLevel
+                        risiconiveau: mappedRiskLevel,
+                        sector: answers.sector || "",
+                        answers: {
+                            q4: qaAnswers.q4 || "",
+                            q5: qaAnswers.q5 || "",
+                            q6: qaAnswers.q6 || "",
+                            q7: qaAnswers.q7 || "",
+                            q8: qaAnswers.q8 || "",
+                            q9: qaAnswers.q9 || "",
+                        }
                     }),
                     signal: emailController.signal
                 });

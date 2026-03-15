@@ -2,26 +2,296 @@ import { NextResponse } from 'next/server';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Resend } from 'resend';
-import fs from 'fs';
-import path from 'path';
-
-
-// Cache the PDF buffer at module level to ensure <800ms response
-let pdfBuffer: Buffer | null = null;
-try {
-    const filePath = path.join(process.cwd(), 'public', 'auditrapport.pdf');
-    pdfBuffer = fs.readFileSync(filePath);
-} catch (error) {
-    console.error('Error loading auditrapport.pdf:', error);
-}
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 interface LeadData {
-    voornaam: string;
-    achternaam: string;
-    bedrijfsnaam: string;
-    email: string;
-    risicoscore: number;
-    risiconiveau: string;
+  voornaam: string;
+  achternaam: string;
+  bedrijfsnaam: string;
+  email: string;
+  risicoscore: number;
+  risiconiveau: string;
+  sector: string;
+  answers: {
+    q4: 'ja' | 'nee' | 'weet_niet';
+    q5: 'ja' | 'nee' | 'weet_niet';
+    q6: 'ja' | 'nee' | 'weet_niet';
+    q7: 'ja' | 'nee' | 'weet_niet';
+    q8: 'ja' | 'nee' | 'weet_niet';
+    q9: 'ja' | 'nee' | 'weet_niet';
+  };
+}
+
+type GapStatus = 'ONTBREEKT' | 'ONVOLDOENDE' | 'AANWEZIG' | 'ONBEKEND' | 'NIET GEVERIF.';
+type RiskLevel = 'KRITISCH' | 'HOOG' | 'VERHOOGD' | 'LAAG';
+
+interface GapItem {
+  verplichting: string;
+  artikel: string;
+  status: GapStatus;
+  risico: RiskLevel;
+}
+
+function buildGapAnalysis(answers: LeadData['answers'], sector: string): GapItem[] {
+  const isStaffing = sector === 'staffing';
+  
+  const answerToStatus = (ans: string): GapStatus => {
+    if (ans === 'ja') return 'AANWEZIG';
+    if (ans === 'nee') return 'ONTBREEKT';
+    return 'ONBEKEND';
+  };
+
+  const answerToRisk = (ans: string, kritischIfNee = false): RiskLevel => {
+    if (ans === 'ja') return 'LAAG';
+    if (ans === 'nee') return kritischIfNee ? 'KRITISCH' : 'HOOG';
+    return 'VERHOOGD';
+  };
+
+  return [
+    {
+      verplichting: 'Conformiteitsbeoordeling AI-systeem',
+      artikel: 'Art. 43',
+      status: isStaffing ? 'ONTBREEKT' : answerToStatus(answers.q4),
+      risico: isStaffing ? 'KRITISCH' : answerToRisk(answers.q4, true),
+    },
+    {
+      verplichting: 'Menselijk toezichtprotocol (gedocumenteerd)',
+      artikel: 'Art. 14',
+      status: answerToStatus(answers.q5),
+      risico: answerToRisk(answers.q5, true),
+    },
+    {
+      verplichting: 'Technische documentatie AI-systeem',
+      artikel: 'Art. 11',
+      status: answerToStatus(answers.q6),
+      risico: answerToRisk(answers.q6, true),
+    },
+    {
+      verplichting: 'Gebruiksverantwoordelijke aanwijzing',
+      artikel: 'Art. 25',
+      status: answers.q8 === 'ja' ? 'AANWEZIG' : 'ONBEKEND',
+      risico: answerToRisk(answers.q8),
+    },
+    {
+      verplichting: 'Transparantieverklaring naar kandidaten',
+      artikel: 'Art. 13',
+      status: answerToStatus(answers.q7),
+      risico: answerToRisk(answers.q7),
+    },
+    {
+      verplichting: 'Conformiteitsverklaring leverancier',
+      artikel: 'Ann. IV',
+      status: 'NIET GEVERIF.',
+      risico: 'HOOG',
+    },
+    {
+      verplichting: 'Data Governance & Bias Audit',
+      artikel: 'Art. 9',
+      status: answerToStatus(answers.q8),
+      risico: answerToRisk(answers.q8),
+    },
+    {
+      verplichting: 'Verwerkersovereenkomst AI (GDPR)',
+      artikel: 'Art. 28 AVG',
+      status: 'ONBEKEND',
+      risico: 'VERHOOGD',
+    },
+  ];
+}
+
+async function generateAuditPDF(data: LeadData): Promise<Buffer> {
+  const pdfDoc = await PDFDocument.create();
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  // Brand colors as rgb values
+  const bg = rgb(0.039, 0.039, 0.039);         // #0A0A0A
+  const gold = rgb(0.788, 0.659, 0.298);        // #C9A84C
+  const white = rgb(0.878, 0.878, 0.878);       // #E0E0E0
+  const dimWhite = rgb(0.533, 0.533, 0.533);    // #888888
+  const red = rgb(0.753, 0.224, 0.169);         // #C0392B
+  const cardBg = rgb(0.067, 0.067, 0.067);      // #111111
+
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const margin = 48;
+  const contentWidth = pageWidth - margin * 2;
+
+  const gapItems = buildGapAnalysis(data.answers, data.sector);
+  const today = new Date().toLocaleDateString('nl-NL', { 
+    day: 'numeric', month: 'long', year: 'numeric' 
+  });
+  const refNum = `DVS-2026-${Date.now().toString().slice(-4)}`;
+
+  // ── PAGE 1: COVER ──────────────────────────────────────────
+  const cover = pdfDoc.addPage([pageWidth, pageHeight]);
+
+  // Background
+  cover.drawRectangle({ x: 0, y: 0, width: pageWidth, height: pageHeight, color: bg });
+
+  // Red top bar
+  cover.drawRectangle({ x: 0, y: pageHeight - 40, width: pageWidth, height: 40, color: red });
+  cover.drawText('VOORLOPIGE STATUS: KRITISCH RISICO  |  VERTROUWELIJK DOCUMENT', {
+    x: 80, y: pageHeight - 24, size: 8, font: helveticaBold, color: rgb(1,1,1)
+  });
+
+  // Gold left accent
+  cover.drawRectangle({ x: 0, y: 0, width: 3, height: pageHeight - 40, color: gold });
+
+  // Logo
+  cover.drawText('DV SOCIAL', { x: margin, y: pageHeight - 90, size: 10, font: helveticaBold, color: gold });
+  cover.drawText('AI COMPLIANCE ADVISORY  ·  NEDERLAND', { x: margin, y: pageHeight - 105, size: 7, font: helvetica, color: dimWhite });
+
+  // Gold line
+  cover.drawLine({ start: { x: margin, y: pageHeight - 115 }, end: { x: pageWidth - margin, y: pageHeight - 115 }, thickness: 0.5, color: gold });
+
+  // Main title
+  cover.drawText('AI COMPLIANCE', { x: margin, y: pageHeight - 190, size: 28, font: helveticaBold, color: white });
+  cover.drawText('AUDITRAPPORT', { x: margin, y: pageHeight - 225, size: 28, font: helveticaBold, color: gold });
+  cover.drawText('Artikel 25 & Artikel 14 — EU AI Act Risicoanalyse', { x: margin, y: pageHeight - 248, size: 9, font: helvetica, color: dimWhite });
+
+  // Info fields
+  cover.drawLine({ start: { x: margin, y: pageHeight - 258 }, end: { x: pageWidth - margin, y: pageHeight - 258 }, thickness: 0.3, color: gold });
+
+  const infoFields = [
+    ['OPGESTELD VOOR', `${data.voornaam} ${data.achternaam}`],
+    ['ORGANISATIE', data.bedrijfsnaam],
+    ['AUDITDATUM', today],
+    ['REFERENTIENUMMER', refNum],
+    ['CLASSIFICATIE', 'Hoog-Risico HR Systeem — Bijlage III, punt 4a'],
+  ];
+
+  let fy = pageHeight - 280;
+  for (const [label, value] of infoFields) {
+    cover.drawText(label, { x: margin, y: fy, size: 6.5, font: helvetica, color: dimWhite });
+    cover.drawText(value, { x: margin + 130, y: fy, size: 8.5, font: helveticaBold, color: white });
+    fy -= 22;
+  }
+
+  // Deadline banner
+  cover.drawRectangle({ x: margin, y: fy - 45, width: contentWidth, height: 48, color: rgb(0.1, 0.04, 0) });
+  cover.drawText('HANDHAVINGSDEADLINE EU AI ACT', { x: margin + 12, y: fy - 18, size: 7, font: helveticaBold, color: gold });
+  cover.drawText('2 AUGUSTUS 2026', { x: margin + 12, y: fy - 36, size: 14, font: helveticaBold, color: white });
+
+  // Risk card
+  fy -= 95;
+  cover.drawRectangle({ x: margin, y: fy - 68, width: contentWidth, height: 72, color: rgb(0.1, 0, 0) });
+  cover.drawText(`RISICOCLASSIFICATIE: ${data.risiconiveau.toUpperCase()}`, { x: pageWidth / 2 - 80, y: fy - 20, size: 10, font: helveticaBold, color: red });
+  cover.drawText('Uw organisatie vereist directe compliancemaatregelen voor 2 augustus 2026.', { x: margin + 30, y: fy - 38, size: 8, font: helvetica, color: dimWhite });
+  cover.drawText('Dit rapport is opgesteld op basis van uw antwoorden in de AI Compliance Check.', { x: margin + 20, y: fy - 52, size: 7.5, font: helvetica, color: dimWhite });
+
+  // Footer
+  cover.drawLine({ start: { x: margin, y: 32 }, end: { x: pageWidth - margin, y: 32 }, thickness: 0.5, color: gold });
+  cover.drawText('D.V Social  ·  AI Compliance Advisory  ·  KVK 96576545  ·  ai-compliance-check.nl', { x: margin, y: 20, size: 6.5, font: helvetica, color: dimWhite });
+  cover.drawText('Pagina 1 van 3', { x: pageWidth - margin - 55, y: 20, size: 6.5, font: helvetica, color: dimWhite });
+
+  // ── PAGE 2: GAP ANALYSE ────────────────────────────────────
+  const gapPage = pdfDoc.addPage([pageWidth, pageHeight]);
+  gapPage.drawRectangle({ x: 0, y: 0, width: pageWidth, height: pageHeight, color: bg });
+  gapPage.drawRectangle({ x: 0, y: 0, width: 3, height: pageHeight, color: gold });
+
+  // Header
+  gapPage.drawRectangle({ x: 0, y: pageHeight - 62, width: pageWidth, height: 62, color: cardBg });
+  gapPage.drawText('VOORLOPIGE GAP-ANALYSE', { x: margin, y: pageHeight - 34, size: 14, font: helveticaBold, color: white });
+  gapPage.drawText(`ORGANISATIE: ${data.bedrijfsnaam.toUpperCase()}  ·  STATUS: VOORLOPIG`, { x: margin, y: pageHeight - 52, size: 7.5, font: helvetica, color: gold });
+
+  // Table header
+  const colX = [margin, margin + 210, margin + 285, margin + 340];
+  let ty = pageHeight - 80;
+  gapPage.drawRectangle({ x: margin, y: ty - 18, width: contentWidth, height: 20, color: gold });
+  const headers = ['VERPLICHTING', 'ARTIKEL', 'STATUS', 'RISICO'];
+  for (let i = 0; i < headers.length; i++) {
+    gapPage.drawText(headers[i], { x: colX[i] + 4, y: ty - 11, size: 7, font: helveticaBold, color: bg });
+  }
+
+  ty -= 20;
+  const statusColors: Record<string, ReturnType<typeof rgb>> = {
+    'ONTBREEKT':    rgb(0.906, 0.298, 0.235),
+    'ONVOLDOENDE':  rgb(0.906, 0.298, 0.235),
+    'AANWEZIG':     rgb(0.18, 0.8, 0.44),
+    'ONBEKEND':     rgb(0.945, 0.769, 0.059),
+    'ONDUIDELIJK':  rgb(0.902, 0.494, 0.133),
+    'NIET GEVERIF.':rgb(0.902, 0.494, 0.133),
+  };
+  const riskColors: Record<string, ReturnType<typeof rgb>> = {
+    'KRITISCH': rgb(0.906, 0.298, 0.235),
+    'HOOG':     rgb(0.902, 0.494, 0.133),
+    'VERHOOGD': rgb(0.945, 0.769, 0.059),
+    'LAAG':     rgb(0.18, 0.8, 0.44),
+  };
+
+  for (let i = 0; i < gapItems.length; i++) {
+    const item = gapItems[i];
+    const rowBg = i % 2 === 0 ? cardBg : rgb(0.078, 0.078, 0.078);
+    const rowH = 26;
+    ty -= rowH;
+
+    gapPage.drawRectangle({ x: margin, y: ty, width: contentWidth, height: rowH, color: rowBg });
+    gapPage.drawText(item.verplichting, { x: colX[0] + 4, y: ty + 9, size: 7.5, font: helvetica, color: white });
+    gapPage.drawText(item.artikel, { x: colX[1] + 4, y: ty + 9, size: 7.5, font: helveticaBold, color: dimWhite });
+    gapPage.drawText(item.status, { x: colX[2] + 4, y: ty + 9, size: 7, font: helveticaBold, color: statusColors[item.status] ?? white });
+    gapPage.drawText(item.risico, { x: colX[3] + 4, y: ty + 9, size: 7, font: helveticaBold, color: riskColors[item.risico] ?? white });
+  }
+
+  // Score summary
+  ty -= 36;
+  gapPage.drawRectangle({ x: margin, y: ty - 48, width: contentWidth, height: 52, color: rgb(0.06, 0.06, 0.06) });
+  gapPage.drawLine({ start: { x: margin, y: ty + 4 }, end: { x: pageWidth - margin, y: ty + 4 }, thickness: 1.5, color: gold });
+  gapPage.drawText('UW RISICOSCORE', { x: margin + 12, y: ty - 14, size: 8, font: helveticaBold, color: dimWhite });
+  gapPage.drawText(`${data.risicoscore} punten`, { x: margin + 12, y: ty - 30, size: 16, font: helveticaBold, color: gold });
+  gapPage.drawText(`Risiconiveau: ${data.risiconiveau.toUpperCase()}`, { x: margin + 130, y: ty - 22, size: 10, font: helveticaBold, color: red });
+  gapPage.drawText('Gebaseerd op uw antwoorden in de AI Compliance Check', { x: margin + 130, y: ty - 36, size: 8, font: helvetica, color: dimWhite });
+
+  gapPage.drawLine({ start: { x: margin, y: 32 }, end: { x: pageWidth - margin, y: 32 }, thickness: 0.5, color: gold });
+  gapPage.drawText('D.V Social  ·  AI Compliance Advisory  ·  KVK 96576545  ·  ai-compliance-check.nl', { x: margin, y: 20, size: 6.5, font: helvetica, color: dimWhite });
+  gapPage.drawText('Pagina 2 van 3', { x: pageWidth - margin - 55, y: 20, size: 6.5, font: helvetica, color: dimWhite });
+
+  // ── PAGE 3: CTA ────────────────────────────────────────────
+  const ctaPage = pdfDoc.addPage([pageWidth, pageHeight]);
+  ctaPage.drawRectangle({ x: 0, y: 0, width: pageWidth, height: pageHeight, color: bg });
+  ctaPage.drawRectangle({ x: 0, y: 0, width: 3, height: pageHeight, color: gold });
+
+  ctaPage.drawRectangle({ x: 0, y: pageHeight - 62, width: pageWidth, height: 62, color: cardBg });
+  ctaPage.drawText('VERVOLGSTAP: DEFINITIEVE INTAKEBEOORDELING', { x: margin, y: pageHeight - 34, size: 12, font: helveticaBold, color: white });
+  ctaPage.drawText('UW VOLGENDE STAP RICHTING AANTOONBARE CONFORMITEIT', { x: margin, y: pageHeight - 52, size: 7.5, font: helvetica, color: gold });
+
+  const intro = `Beste ${data.voornaam}, uw voorlopige risicostatus vereist directe actie. Een definitieve`;
+  const intro2 = 'Article 14 & 25 gap-analyse vereist een 45-minuten intake — kosteloos en zonder verplichting.';
+  ctaPage.drawText(intro, { x: margin, y: pageHeight - 85, size: 9, font: helvetica, color: white });
+  ctaPage.drawText(intro2, { x: margin, y: pageHeight - 100, size: 9, font: helvetica, color: white });
+
+  const steps = [
+    ['01', 'Definitieve Classificatie', 'Aanbieder of Gebruiksverantwoordelijke per Art. 25.'],
+    ['02', 'AI-Touchpoint Inventarisatie', 'Alle actieve AI-systemen in uw recruitmentproces.'],
+    ['03', 'Documentatietekortschatting', 'Kwantificering van uw Art. 14 gap.'],
+    ['04', 'Prioriteitenmatrix', 'Stappen gerangschikt op urgentie — gericht op 2 augustus 2026.'],
+    ['05', 'Indicatieve Auditscope', 'Eerste inschatting van omvang, tijdlijn en aanpak.'],
+  ];
+
+  let sy = pageHeight - 130;
+  for (const [num, title, desc] of steps) {
+    ctaPage.drawRectangle({ x: margin, y: sy - 38, width: contentWidth, height: 42, color: cardBg });
+    ctaPage.drawCircle({ x: margin + 18, y: sy - 16, size: 10, color: gold });
+    ctaPage.drawText(num, { x: margin + 13, y: sy - 20, size: 8, font: helveticaBold, color: bg });
+    ctaPage.drawText(title, { x: margin + 36, y: sy - 10, size: 9, font: helveticaBold, color: white });
+    ctaPage.drawText(desc, { x: margin + 36, y: sy - 24, size: 8, font: helvetica, color: dimWhite });
+    sy -= 48;
+  }
+
+  // Final CTA block
+  sy -= 12;
+  ctaPage.drawRectangle({ x: margin, y: sy - 68, width: contentWidth, height: 72, color: rgb(0.05, 0.1, 0.05) });
+  ctaPage.drawLine({ start: { x: margin, y: sy + 4 }, end: { x: pageWidth - margin, y: sy + 4 }, thickness: 1.5, color: gold });
+  ctaPage.drawText('BEVESTIG UW DEFINITIEVE INTAKEBEOORDELING', { x: margin + 50, y: sy - 16, size: 10, font: helveticaBold, color: white });
+  ctaPage.drawText('Mobiel: 06 38 20 24 24  ·  ai-compliance-check.nl  ·  Reactie binnen 24 uur', { x: margin + 40, y: sy - 32, size: 8.5, font: helvetica, color: dimWhite });
+  ctaPage.drawText('Er zijn nog 2 intakeposities beschikbaar voor Q2 2026.', { x: margin + 70, y: sy - 48, size: 8.5, font: helveticaBold, color: gold });
+
+  ctaPage.drawLine({ start: { x: margin, y: 32 }, end: { x: pageWidth - margin, y: 32 }, thickness: 0.5, color: gold });
+  ctaPage.drawText('D.V Social  ·  AI Compliance Advisory  ·  KVK 96576545  ·  ai-compliance-check.nl', { x: margin, y: 20, size: 6.5, font: helvetica, color: dimWhite });
+  ctaPage.drawText('Pagina 3 van 3', { x: pageWidth - margin - 55, y: 20, size: 6.5, font: helvetica, color: dimWhite });
+
+  const pdfBytes = await pdfDoc.save();
+  return Buffer.from(pdfBytes);
 }
 
 export async function POST(request: Request) {
@@ -60,6 +330,8 @@ export async function POST(request: Request) {
                 source: 'ai-compliance-check.nl',
                 createdAt: serverTimestamp(),
             });
+
+            const dynamicPdfBuffer = await generateAuditPDF(body);
 
             // Email to lead
             const leadEmailPromise = resend.emails.send({
@@ -241,12 +513,10 @@ export async function POST(request: Request) {
 </body>
 </html>`,
                 text: `Beste ${voornaam},\n\nBedankt voor het invullen van de AI Compliance Check. In de bijlage vindt u uw persoonlijke auditrapport op basis van de ingevulde gegevens.\n\nWij nemen spoedig contact met u op voor uw gratis intake.\n\nMet vriendelijke groet,\nDV Social`,
-                attachments: pdfBuffer ? [
-                    {
-                        filename: 'auditrapport.pdf',
-                        content: pdfBuffer,
-                    }
-                ] : undefined
+                attachments: [{
+                    filename: `DV-Social-Auditrapport-${body.bedrijfsnaam.replace(/\s+/g,'-')}.pdf`,
+                    content: dynamicPdfBuffer,
+                }]
             });
 
             // Email to admin
