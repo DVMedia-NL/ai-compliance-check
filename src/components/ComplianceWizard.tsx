@@ -73,6 +73,7 @@ export default function ComplianceWizard() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [resultUrl, setResultUrl] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState("");
 
     const handleNext = () => {
         setIsTransitioning(true);
@@ -112,6 +113,7 @@ export default function ComplianceWizard() {
         if (!leadForm.gdprConsent) return;
 
         setIsSubmitting(true);
+        setSuccessMessage("");
 
         const payload: AuditSubmission = {
             name: leadForm.name,
@@ -131,20 +133,44 @@ export default function ComplianceWizard() {
             }
         };
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        let isSlow = false;
+        
+        const slowTimeoutId = setTimeout(() => {
+            isSlow = true;
+            setSuccessMessage("Het rapport wordt verstuurd. \nControleer uw inbox binnen 5 minuten.");
+            setSubmitted(true);
+        }, 5000);
+
         try {
             const res = await fetch("/api/submit-audit", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
+            clearTimeout(slowTimeoutId);
+            
             const data = await res.json();
             
             if (!res.ok) throw new Error(data.error || "Er ging iets mis");
             
-            setResultUrl(data.reportUrl);
-            setSubmitted(true);
+            if (!isSlow) {
+                setResultUrl(data.reportUrl);
+                setSubmitted(true);
+            }
         } catch (err: any) {
-            setApiError(err.message);
+            clearTimeout(slowTimeoutId);
+            if (err.name === 'AbortError') {
+                if (!isSlow) {
+                    setSuccessMessage("Het rapport wordt verstuurd. \nControleer uw inbox binnen 5 minuten.");
+                    setSubmitted(true);
+                }
+            } else if (!isSlow) {
+                setApiError(err.message);
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -275,7 +301,7 @@ export default function ComplianceWizard() {
                             {localResult.riskLevel === "MEDIUM" && "Er zijn compliance gaps geïdentificeerd. Ons Compleet pakket sluit deze gaps en maakt uw organisatie EU AI Act-ready."}
                             {localResult.riskLevel === "HIGH" && "Uw profiel vereist directe actie. Het Totaal ontzorgd pakket regelt volledige compliance — wij nemen het over."}
                         </p>
-                        <a href="https://dvsocial.nl/pakketten" target="_blank" rel="noopener noreferrer" className="text-gold underline font-medium text-sm hover:text-white transition-colors">
+                        <a href="https://www.dvsocial.nl/pakketten" target="_blank" rel="noopener noreferrer" className="text-gold underline font-medium text-sm hover:text-white transition-colors">
                             Bekijk wat dit pakket inhoudt &rarr;
                         </a>
                     </div>
@@ -284,9 +310,6 @@ export default function ComplianceWizard() {
                     <div className="space-y-4 pt-4">
                         <a href="https://calendly.com/danny-dvsocial/30min" target="_blank" rel="noopener noreferrer" className="block w-full min-h-[56px] bg-gold text-[#000000] font-bold text-[18px] text-center flex items-center justify-center hover:bg-white transition-colors">
                             Plan uw gratis gesprek
-                        </a>
-                        <a href="tel:+31600000000" className="block w-full min-h-[48px] bg-transparent border border-gold text-gold font-medium text-center flex items-center justify-center hover:bg-gold/10 transition-colors">
-                            Bel direct: +31 6 XX XX XX XX
                         </a>
                     </div>
                 </div>
@@ -303,12 +326,20 @@ export default function ComplianceWizard() {
                     {submitted ? (
                         <div className="text-center space-y-4 py-8">
                             <h3 className="font-serif text-2xl text-gold">Dank u wel!</h3>
-                            <p className="text-muted leading-relaxed max-w-sm mx-auto">
-                                Uw rapport is succesvol gegenereerd en verzonden. U kunt het rapport ook direct downloaden.
-                            </p>
-                            <a href={resultUrl || "#"} download className="inline-flex mt-4 min-h-[48px] px-8 bg-gold text-[#000000] font-bold text-sm items-center hover:bg-white transition-colors">
-                                Download PDF rapport
-                            </a>
+                            {successMessage ? (
+                                <p className="text-muted leading-relaxed max-w-sm mx-auto whitespace-pre-line">
+                                    {successMessage}
+                                </p>
+                            ) : (
+                                <>
+                                    <p className="text-muted leading-relaxed max-w-sm mx-auto">
+                                        Uw rapport is succesvol gegenereerd en verzonden. U kunt het rapport ook direct downloaden.
+                                    </p>
+                                    <a href={resultUrl || "#"} download className="inline-flex mt-4 min-h-[48px] px-8 bg-gold text-[#000000] font-bold text-sm items-center justify-center hover:bg-white transition-colors">
+                                        Download PDF rapport
+                                    </a>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <>
