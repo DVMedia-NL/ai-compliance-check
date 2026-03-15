@@ -255,20 +255,22 @@ async function generateAuditPDF(data: LeadData): Promise<Buffer> {
   ctaPage.drawText('VERVOLGSTAP: DEFINITIEVE INTAKEBEOORDELING', { x: margin, y: pageHeight - 34, size: 12, font: helveticaBold, color: white });
   ctaPage.drawText('UW VOLGENDE STAP RICHTING AANTOONBARE CONFORMITEIT', { x: margin, y: pageHeight - 52, size: 7.5, font: helvetica, color: gold });
 
-  const intro = `Beste ${data.voornaam}, uw voorlopige risicostatus vereist directe actie. Een definitieve`;
-  const intro2 = 'Article 14 & 25 gap-analyse vereist een 45-minuten intake — kosteloos en zonder verplichting.';
+  const intro = `Uw risicoprofiel vereist actie voor 2 augustus 2026. Wij helpen u`;
+  const intro2 = 'begrijpen wat er speelt — in gewone taal, zonder omwegen.';
   ctaPage.drawText(intro, { x: margin, y: pageHeight - 85, size: 9, font: helvetica, color: white });
   ctaPage.drawText(intro2, { x: margin, y: pageHeight - 100, size: 9, font: helvetica, color: white });
+  const intro3 = 'De intake duurt 45 minuten en is volledig kosteloos.';
+  ctaPage.drawText(intro3, { x: margin, y: pageHeight - 115, size: 9, font: helvetica, color: white });
 
   const steps = [
-    ['01', 'Definitieve Classificatie', 'Aanbieder of Gebruiksverantwoordelijke per Art. 25.'],
-    ['02', 'AI-Touchpoint Inventarisatie', 'Alle actieve AI-systemen in uw recruitmentproces.'],
-    ['03', 'Documentatietekortschatting', 'Kwantificering van uw Art. 14 gap.'],
-    ['04', 'Prioriteitenmatrix', 'Stappen gerangschikt op urgentie — gericht op 2 augustus 2026.'],
-    ['05', 'Indicatieve Auditscope', 'Eerste inschatting van omvang, tijdlijn en aanpak.'],
+    ['01', 'Wat is uw juridische rol?', 'We bepalen of u aanbieder of gebruiker bent onder de wet.'],
+    ['02', 'Welke AI gebruikt u zonder het te weten?', 'We brengen alle AI in uw recruitmentproces in kaart.'],
+    ['03', 'Wat ontbreekt er precies?', 'We laten zien wat er gedocumenteerd moet worden.'],
+    ['04', 'Wat moet u als eerste doen?', 'Een prioriteitenlijst: wat is urgent, wat kan wachten.'],
+    ['05', 'Hoeveel tijd en geld kost het?', 'Een eerlijke inschatting van de volledige aanpak.'],
   ];
 
-  let sy = pageHeight - 130;
+  let sy = pageHeight - 145;
   for (const [num, title, desc] of steps) {
     ctaPage.drawRectangle({ x: margin, y: sy - 38, width: contentWidth, height: 42, color: cardBg });
     ctaPage.drawCircle({ x: margin + 18, y: sy - 16, size: 10, color: gold });
