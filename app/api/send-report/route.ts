@@ -32,6 +32,74 @@ interface GapItem {
   risico: RiskLevel;
 }
 
+function getSectorContext(sector: string): { title: string; lines: string[] } {
+  switch (sector) {
+    case 'Staffing/uitzendbureau':
+      return {
+        title: 'SECTORSPECIFIEKE CONTEXT: STAFFING & UITZEND — SECTOR-OVERRIDE ACTIEF',
+        lines: [
+          'CV-screening en kandidaatsbeoordeling via AI vallen altijd onder hoog-risico (Bijlage III, punt 4a EU AI Act).',
+          'Sector-override is automatisch van kracht: uw risiconiveau is HOOG ongeacht de totaalscore.',
+          'Artikel 22 AVG verbiedt volledig geautomatiseerde besluiten over kandidaten zonder expliciete toestemming.',
+        ],
+      };
+    case 'Zorg':
+      return {
+        title: 'SECTORSPECIFIEKE CONTEXT: ZORG — MDR & EU AI ACT OVERLAP',
+        lines: [
+          'Medische beslissingsondersteuning via AI valt onder hoog-risico (Bijlage III, punt 5 EU AI Act).',
+          'Dubbele conformiteitsverplichting: EU AI Act en Medical Device Regulation (MDR) zijn gelijktijdig van toepassing.',
+          'Menselijk toezicht (Art. 14) is extra kritisch bij diagnostiek en behandeladvies — documentatie is verplicht.',
+        ],
+      };
+    case 'Financieel':
+      return {
+        title: 'SECTORSPECIFIEKE CONTEXT: FINANCIËLE SECTOR',
+        lines: [
+          'AI bij kredietbeoordeling en fraudedetectie valt onder hoog-risico (Bijlage III, punt 5b EU AI Act).',
+          'Overlap met PSD2, CRD en DORA verplicht tot geïntegreerde risicodocumentatie en audittrails.',
+          'Transparantieplicht naar klanten over algoritmische besluiten is wettelijk verankerd (Art. 13).',
+        ],
+      };
+    case 'Overheid':
+      return {
+        title: 'SECTORSPECIFIEKE CONTEXT: OVERHEID — VERHOOGDE TOEZICHTSVERPLICHTING',
+        lines: [
+          'Overheidsorganisaties vallen onder extra toezicht; AI bij dienstverlening aan burgers is veelal hoog-risico.',
+          'Publieke aanbestedingen van AI-systemen vereisen conformiteitsverklaringen van leveranciers (Ann. IV).',
+          'Transparantie en logging (Art. 12 & 13) zijn verplicht bij elk AI-systeem dat burgers betreft.',
+        ],
+      };
+    case 'Logistiek':
+      return {
+        title: 'SECTORSPECIFIEKE CONTEXT: LOGISTIEK',
+        lines: [
+          'AI bij route-optimalisatie en planning valt doorgaans onder beperkt of minimaal risico.',
+          'Uitzondering: AI-systemen met veiligheidsrelevante besluiten (bijv. transport) vallen onder hoog-risico.',
+          'Transparantie over geautomatiseerde roostering richting medewerkers is vereist (Art. 13 EU AI Act).',
+        ],
+      };
+    case 'Retail':
+      return {
+        title: 'SECTORSPECIFIEKE CONTEXT: RETAIL',
+        lines: [
+          'AI bij prijsoptimalisatie en klantprofilering valt veelal onder beperkt risico.',
+          'Uitzondering: AI bij personeelsbeoordeling of -selectie valt onder hoog-risico (Bijlage III EU AI Act).',
+          'Transparantieplicht naar consumenten over AI-gebruik is verplicht per Art. 13 EU AI Act.',
+        ],
+      };
+    default:
+      return {
+        title: 'SECTORSPECIFIEKE CONTEXT: EU AI ACT BASISVEREISTEN',
+        lines: [
+          'Alle AI-systemen vereisen een risicoclassificatie; hoog-risico systemen (Bijlage III) vereisen directe actie.',
+          'Technische documentatie, menselijk toezicht (Art. 14) en logging (Art. 12) zijn basisverplichtingen.',
+          'Transparantie naar gebruikers en een gedocumenteerd AI-beleid zijn vereist vóór 2 augustus 2026.',
+        ],
+      };
+  }
+}
+
 function buildGapAnalysis(answers: LeadData['answers'], sector: string): GapItem[] {
   const isStaffing = sector === 'staffing';
   
@@ -195,9 +263,20 @@ async function generateAuditPDF(data: LeadData): Promise<Buffer> {
   gapPage.drawText('VOORLOPIGE GAP-ANALYSE', { x: margin, y: pageHeight - 34, size: 14, font: helveticaBold, color: white });
   gapPage.drawText(`ORGANISATIE: ${data.bedrijfsnaam.toUpperCase()}  ·  STATUS: VOORLOPIG`, { x: margin, y: pageHeight - 52, size: 7.5, font: helvetica, color: gold });
 
+  // Sector context block
+  const sectorCtx = getSectorContext(data.sector);
+  const ctxBlockTop = pageHeight - 68;  // visual top (pdf-lib: bottom-left y + height)
+  const ctxBlockHeight = 58;
+  gapPage.drawRectangle({ x: margin, y: ctxBlockTop - ctxBlockHeight, width: contentWidth, height: ctxBlockHeight, color: rgb(0.05, 0.05, 0.05) });
+  gapPage.drawLine({ start: { x: margin, y: ctxBlockTop }, end: { x: pageWidth - margin, y: ctxBlockTop }, thickness: 0.5, color: gold });
+  gapPage.drawText(sectorCtx.title, { x: margin + 8, y: ctxBlockTop - 14, size: 6.5, font: helveticaBold, color: gold });
+  gapPage.drawText(sectorCtx.lines[0], { x: margin + 8, y: ctxBlockTop - 26, size: 7.5, font: helvetica, color: dimWhite });
+  gapPage.drawText(sectorCtx.lines[1], { x: margin + 8, y: ctxBlockTop - 38, size: 7.5, font: helvetica, color: dimWhite });
+  gapPage.drawText(sectorCtx.lines[2], { x: margin + 8, y: ctxBlockTop - 50, size: 7.5, font: helvetica, color: dimWhite });
+
   // Table header
   const colX = [margin, margin + 210, margin + 285, margin + 340];
-  let ty = pageHeight - 80;
+  let ty = pageHeight - 146;
   gapPage.drawRectangle({ x: margin, y: ty - 18, width: contentWidth, height: 20, color: gold });
   const headers = ['VERPLICHTING', 'ARTIKEL', 'STATUS', 'RISICO'];
   for (let i = 0; i < headers.length; i++) {
